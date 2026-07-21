@@ -1,0 +1,220 @@
+// Full data model for the reading platform.
+// Only User/Book/ReadingProgress are actively used by endpoints in this pass;
+// the rest is here so future features (highlights, notes, AI, stats, etc.)
+// don't require breaking migrations.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AuthProvider {
+  EMAIL
+  GOOGLE
+  GITHUB
+  ANONYMOUS
+}
+
+enum BookSourceType {
+  URL
+  PDF
+  EPUB
+  MOBI
+  DOCX
+  TXT
+  MARKDOWN
+  HTML
+}
+
+enum BookStatus {
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum HighlightColor {
+  YELLOW
+  GREEN
+  BLUE
+  PINK
+}
+
+model User {
+  id            String       @id @default(uuid())
+  email         String?      @unique
+  passwordHash  String?
+  displayName   String?
+  avatarUrl     String?
+  provider      AuthProvider @default(EMAIL)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  books             Book[]
+  progress          ReadingProgress[]
+  highlights        Highlight[]
+  notes             Note[]
+  bookmarks         Bookmark[]
+  collections       Collection[]
+  refreshTokens     RefreshToken[]
+  readingStatsDaily ReadingStatsDaily[]
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Book {
+  id             String         @id @default(uuid())
+  userId         String
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title          String
+  author         String?
+  description    String?
+  coverUrl       String?
+  category       String?
+  tags           String[]       @default([])
+
+  sourceType     BookSourceType
+  sourceUrl      String?
+  originalFileUrl String?
+
+  status         BookStatus     @default(PROCESSING)
+  failureReason  String?
+
+  wordCount      Int?
+  estimatedMinutes Int?
+
+  isFavorite     Boolean        @default(false)
+
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  chapters       Chapter[]
+  progress       ReadingProgress[]
+  highlights     Highlight[]
+  notes          Note[]
+  bookmarks      Bookmark[]
+  collectionBooks CollectionBook[]
+
+  @@index([userId])
+}
+
+model Chapter {
+  id        String   @id @default(uuid())
+  bookId    String
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  order     Int
+  title     String?
+  contentHtml String @db.Text
+  wordCount Int?
+
+  highlights Highlight[]
+  notes      Note[]
+  bookmarks  Bookmark[]
+
+  @@index([bookId, order])
+}
+
+model ReadingProgress {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookId        String
+  book          Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  chapterId     String?
+  percent       Float    @default(0)
+  scrollOffset  Float?
+  secondsSpent  Int      @default(0)
+  lastReadAt    DateTime @default(now())
+
+  @@unique([userId, bookId])
+}
+
+model Highlight {
+  id         String         @id @default(uuid())
+  userId     String
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookId     String
+  book       Book           @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  chapterId  String?
+  chapter    Chapter?       @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  color      HighlightColor @default(YELLOW)
+  selectedText String       @db.Text
+  startOffset  Int
+  endOffset    Int
+  createdAt    DateTime     @default(now())
+
+  note       Note?
+}
+
+model Note {
+  id          String     @id @default(uuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookId      String
+  book        Book       @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  chapterId   String?
+  chapter     Chapter?   @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  highlightId String?    @unique
+  highlight   Highlight? @relation(fields: [highlightId], references: [id], onDelete: Cascade)
+
+  bodyMarkdown String    @db.Text
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Bookmark {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookId    String
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  chapterId String?
+  chapter   Chapter? @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  label     String?
+  createdAt DateTime @default(now())
+}
+
+model Collection {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  createdAt DateTime         @default(now())
+
+  books     CollectionBook[]
+}
+
+model CollectionBook {
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  bookId       String
+  book         Book       @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  addedAt      DateTime   @default(now())
+
+  @@id([collectionId, bookId])
+}
+
+model ReadingStatsDaily {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date         DateTime @db.Date
+  secondsRead  Int      @default(0)
+  pagesRead    Int      @default(0)
+  wordsRead    Int      @default(0)
+
+  @@unique([userId, date])
+}
