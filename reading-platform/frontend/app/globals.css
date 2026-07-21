@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: 'Fraunces', serif;
+  --font-sans: 'Inter', sans-serif;
+  --font-reading: 'Source Serif 4', Georgia, serif;
+}
+
+/* Reading-surface themes — independent of light/dark app chrome */
+[data-reader-theme='light'] {
+  --reader-bg: #fbfaf6;
+  --reader-fg: #1c1c1a;
+  --reader-muted: #8a8a82;
+}
+[data-reader-theme='sepia'] {
+  --reader-bg: #f1e7d0;
+  --reader-fg: #3b2f20;
+  --reader-muted: #8a7a5c;
+}
+[data-reader-theme='dark'] {
+  --reader-bg: #1b1e22;
+  --reader-fg: #d8d8d4;
+  --reader-muted: #8b8f94;
+}
+[data-reader-theme='amoled'] {
+  --reader-bg: #000000;
+  --reader-fg: #c9c9c9;
+  --reader-muted: #6f6f6f;
+}
+
+body {
+  background-color: #f7f5f0;
+  color: #161c24;
+}
+
+.dark body {
+  background-color: #161c24;
+  color: #f7f5f0;
+}
+
+.reading-surface {
+  background-color: var(--reader-bg);
+  color: var(--reader-fg);
+  font-family: var(--font-reading);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.reading-surface p {
+  margin-bottom: 1.15em;
+}
+
+/* Shelf signature: hairline rule + soft ledge shadow under each book row */
+.shelf-row {
+  border-bottom: 1px solid rgba(22, 28, 36, 0.08);
+  box-shadow: var(--tw-shadow, none);
+  padding-bottom: 2rem;
+}

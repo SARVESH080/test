@@ -1,0 +1,47 @@
+{
+  "name": "reading-platform-backend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "nest build",
+    "start": "node dist/main",
+    "start:dev": "nest start --watch",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev"
+  },
+  "dependencies": {
+    "@nestjs/common": "^10.4.0",
+    "@nestjs/config": "^3.2.3",
+    "@nestjs/core": "^10.4.0",
+    "@nestjs/jwt": "^10.2.0",
+    "@nestjs/passport": "^10.0.3",
+    "@nestjs/platform-express": "^10.4.0",
+    "@nestjs/serve-static": "^4.0.2",
+    "@prisma/client": "^5.19.1",
+    "@mozilla/readability": "^0.5.0",
+    "argon2": "^0.40.3",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
+    "jsdom": "^24.1.1",
+    "mammoth": "^1.8.0",
+    "multer": "^1.4.5-lts.1",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
+    "pdf-parse": "^1.1.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^10.4.5",
+    "@types/express": "^4.17.21",
+    "@types/jsdom": "^21.1.7",
+    "@types/multer": "^1.4.11",
+    "@types/node": "^20.14.15",
+    "@types/passport-jwt": "^4.0.1",
+    "@types/pdf-parse": "^1.1.4",
+    "@types/uuid": "^10.0.0",
+    "prisma": "^5.19.1",
+    "typescript": "^5.5.4"
+  }
+}
