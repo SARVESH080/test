@@ -1,0 +1,236 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 30 20% 98%;
+  --foreground: 20 14% 12%;
+  --card: 30 25% 100%;
+  --card-foreground: 20 14% 12%;
+  --popover: 30 25% 100%;
+  --popover-foreground: 20 14% 12%;
+  --primary: 20 14% 12%;
+  --primary-foreground: 30 20% 98%;
+  --secondary: 30 15% 93%;
+  --secondary-foreground: 20 14% 12%;
+  --muted: 30 12% 92%;
+  --muted-foreground: 20 8% 40%;
+  --accent: 24 74% 47%;
+  --accent-foreground: 30 20% 98%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 30 20% 98%;
+  --border: 30 15% 88%;
+  --input: 30 15% 88%;
+  --ring: 24 74% 47%;
+  --radius: 0.6rem;
+
+  --reader-paper: 40 38% 97%;
+  --reader-ink: 20 14% 14%;
+  --reader-sepia-bg: 39 46% 89%;
+  --reader-sepia-ink: 27 35% 18%;
+}
+
+.dark {
+  --background: 20 14% 8%;
+  --foreground: 30 15% 92%;
+  --card: 20 14% 10%;
+  --card-foreground: 30 15% 92%;
+  --popover: 20 14% 10%;
+  --popover-foreground: 30 15% 92%;
+  --primary: 30 15% 92%;
+  --primary-foreground: 20 14% 10%;
+  --secondary: 20 10% 16%;
+  --secondary-foreground: 30 15% 92%;
+  --muted: 20 10% 15%;
+  --muted-foreground: 30 8% 62%;
+  --accent: 24 80% 58%;
+  --accent-foreground: 20 14% 10%;
+  --destructive: 0 62% 55%;
+  --destructive-foreground: 30 15% 92%;
+  --border: 20 10% 20%;
+  --input: 20 10% 20%;
+  --ring: 24 80% 58%;
+
+  --reader-paper: 20 12% 11%;
+  --reader-ink: 30 15% 88%;
+  --reader-sepia-bg: 20 12% 11%;
+  --reader-sepia-ink: 30 15% 88%;
+}
+
+* {
+  @apply border-border;
+}
+
+body {
+  @apply bg-background text-foreground;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* ---------- Reading surface themes ---------- */
+.reader-theme-light {
+  --reader-paper: 40 38% 97%;
+  --reader-ink: 20 14% 14%;
+}
+.reader-theme-dark {
+  --reader-paper: 20 12% 11%;
+  --reader-ink: 30 15% 88%;
+}
+.reader-theme-sepia {
+  --reader-paper: 39 46% 87%;
+  --reader-ink: 27 42% 16%;
+}
+
+.reader-surface {
+  background-color: hsl(var(--reader-paper));
+  color: hsl(var(--reader-ink));
+}
+
+/* ---------- Bookmark ribbon signature element ---------- */
+.bookmark-ribbon {
+  position: relative;
+}
+.bookmark-ribbon::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  right: 22px;
+  width: 22px;
+  height: 46px;
+  background: linear-gradient(180deg, hsl(var(--accent)) 0%, hsl(var(--accent)) 78%, transparent 78%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 82%, 0 100%);
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.25));
+  transition: transform 0.3s ease;
+}
+.bookmark-ribbon:hover::before {
+  transform: translateY(4px);
+}
+
+/* ---------- Page-curl progress bar ---------- */
+.page-progress-track {
+  position: relative;
+  height: 3px;
+  width: 100%;
+  background: hsl(var(--border));
+  overflow: hidden;
+}
+.page-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, hsl(var(--accent)), hsl(var(--accent) / 0.7));
+  transition: width 0.15s ease-out;
+}
+
+/* Custom scrollbar for reading area */
+.reading-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+.reading-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.reading-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 999px;
+}
+.reading-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.4);
+}
+
+/* Article typography (Readability output) */
+.article-content {
+  line-height: 1.75;
+}
+.article-content h1,
+.article-content h2,
+.article-content h3 {
+  font-weight: 700;
+  margin-top: 1.6em;
+  margin-bottom: 0.6em;
+  line-height: 1.3;
+}
+.article-content h1 { font-size: 1.8em; }
+.article-content h2 { font-size: 1.5em; }
+.article-content h3 { font-size: 1.25em; }
+.article-content p {
+  margin-bottom: 1.2em;
+}
+.article-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 1.5em auto;
+  display: block;
+}
+.article-content figure {
+  margin: 1.5em 0;
+}
+.article-content figcaption {
+  font-size: 0.85em;
+  opacity: 0.7;
+  text-align: center;
+  margin-top: 0.5em;
+}
+.article-content blockquote {
+  border-left: 3px solid hsl(var(--accent));
+  padding-left: 1.2em;
+  margin: 1.5em 0;
+  font-style: italic;
+  opacity: 0.9;
+}
+.article-content pre {
+  background: hsl(var(--muted));
+  padding: 1em;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin: 1.5em 0;
+  font-size: 0.85em;
+}
+.article-content code {
+  background: hsl(var(--muted));
+  padding: 0.15em 0.4em;
+  border-radius: 0.3rem;
+  font-size: 0.9em;
+}
+.article-content pre code {
+  background: none;
+  padding: 0;
+}
+.article-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5em 0;
+  font-size: 0.9em;
+}
+.article-content th,
+.article-content td {
+  border: 1px solid hsl(var(--border));
+  padding: 0.5em 0.8em;
+  text-align: left;
+}
+.article-content th {
+  background: hsl(var(--muted));
+}
+.article-content ul,
+.article-content ol {
+  margin: 1em 0 1.2em 1.5em;
+}
+.article-content li {
+  margin-bottom: 0.4em;
+}
+.article-content a {
+  color: hsl(var(--accent));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.article-content hr {
+  border: none;
+  border-top: 1px solid hsl(var(--border));
+  margin: 2em 0;
+}
+
+/* PDF page shadow */
+.pdf-page-shadow {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 8px 24px rgba(0,0,0,0.10);
+}
+
+.dark .pdf-page-shadow {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4), 0 8px 30px rgba(0,0,0,0.5);
+}
