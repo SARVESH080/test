@@ -305,6 +305,14 @@ async function extractPageImages(
   }
 
   const OPS = pdfjs.OPS;
+  // A couple of the image-related op codes have moved around across
+  // pdfjs-dist major versions (e.g. `paintJpegXObject` was folded into
+  // `paintImageXObject` in v6). Look those up loosely so a future version
+  // bump degrades gracefully (just misses that op) instead of failing the
+  // whole build the way a missing static property does.
+  const opsLoose = OPS as unknown as Record<string, number | undefined>;
+  const paintInlineImageOp = opsLoose.paintInlineImageXObject;
+
   const identity: Matrix = [1, 0, 0, 1, 0, 0];
   const stack: Matrix[] = [];
   let ctm: Matrix = identity;
@@ -322,8 +330,7 @@ async function extractPageImages(
       ctm = multiplyMatrix([args[0], args[1], args[2], args[3], args[4], args[5]], ctm);
     } else if (
       fn === OPS.paintImageXObject ||
-      fn === OPS.paintJpegXObject ||
-      fn === OPS.paintInlineImageXObject
+      (paintInlineImageOp !== undefined && fn === paintInlineImageOp)
     ) {
       placements.push(ctm);
     }
