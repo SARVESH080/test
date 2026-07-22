@@ -46,6 +46,7 @@ export function ReaderShell({ bookId }: { bookId: string }) {
     next,
     prev,
     fraction,
+    pageWidth,
   } = usePagination({
     deps: [
       book?.id,
@@ -64,26 +65,23 @@ export function ReaderShell({ bookId }: { bookId: string }) {
       const el = columnsRef.current?.querySelector<HTMLElement>(
         `[data-p="${saved.paragraphIndex}"]`
       );
-      const frame = frameRef.current;
-      if (el && frame && frame.clientWidth > 0) {
-        goTo(Math.floor(el.offsetLeft / frame.clientWidth));
+      if (el && pageWidth > 0) {
+        goTo(Math.floor(el.offsetLeft / pageWidth));
       } else {
         goTo(Math.round(saved.fraction * (totalPages - 1)));
       }
     }
     restoredRef.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [book, totalPages]);
+  }, [book, totalPages, pageWidth]);
 
   // Persist position (debounced) whenever the page changes.
   useEffect(() => {
     if (!book || !restoredRef.current) return;
     const timeout = setTimeout(() => {
-      const frame = frameRef.current;
       const columns = columnsRef.current;
       let paragraphIndex = 0;
-      if (frame && columns) {
-        const pageWidth = frame.clientWidth;
+      if (columns && pageWidth > 0) {
         const nodes = columns.querySelectorAll<HTMLElement>("[data-p]");
         for (const node of nodes) {
           if (Math.floor(node.offsetLeft / pageWidth) >= page) {
@@ -102,7 +100,7 @@ export function ReaderShell({ bookId }: { bookId: string }) {
     }, 400);
     return () => clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, book, fraction]);
+  }, [page, book, fraction, pageWidth]);
 
   const updateSettings = useCallback((next: ReaderSettings) => {
     setSettings(next);
@@ -208,6 +206,7 @@ export function ReaderShell({ bookId }: { bookId: string }) {
         >
           <div
             ref={columnsRef}
+            className="transition-transform duration-300 ease-out will-change-transform"
             style={{
               color: "var(--read-fg)",
               fontFamily: readingFontFamily,
@@ -260,20 +259,18 @@ export function ReaderShell({ bookId }: { bookId: string }) {
           const el = columnsRef.current?.querySelector<HTMLElement>(
             `[data-p="${paragraphIndex}"]`
           );
-          const frame = frameRef.current;
-          if (el && frame) {
-            goTo(Math.floor(el.offsetLeft / frame.clientWidth));
+          if (el && pageWidth > 0) {
+            goTo(Math.floor(el.offsetLeft / pageWidth));
           }
           setTocOpen(false);
         }}
         currentParagraph={(() => {
           const columns = columnsRef.current;
-          const frame = frameRef.current;
-          if (!columns || !frame) return 0;
+          if (!columns || pageWidth <= 0) return 0;
           const nodes = columns.querySelectorAll<HTMLElement>("[data-p]");
           let idx = 0;
           for (const node of nodes) {
-            if (Math.floor(node.offsetLeft / frame.clientWidth) > page) break;
+            if (Math.floor(node.offsetLeft / pageWidth) > page) break;
             idx = Number(node.dataset.p);
           }
           return idx;
