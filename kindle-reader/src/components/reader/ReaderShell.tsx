@@ -168,15 +168,15 @@ export function ReaderShell({ bookId }: { bookId: string }) {
       const third = rect.width / 3;
       if (x < third) {
         prev();
-        bumpChrome(false);
+        if (isFullscreen) bumpChrome(false);
       } else if (x > third * 2) {
         next();
-        bumpChrome(false);
+        if (isFullscreen) bumpChrome(false);
       } else {
         bumpChrome(!chromeVisible);
       }
     },
-    [prev, next, chromeVisible, bumpChrome]
+    [prev, next, chromeVisible, bumpChrome, isFullscreen]
   );
 
   if (book === undefined) {
@@ -238,7 +238,7 @@ export function ReaderShell({ bookId }: { bookId: string }) {
                   <img
                     src={p.image.src}
                     alt=""
-                    className="max-h-full max-w-full rounded-sm object-contain"
+                    className="max-h-[60vh] max-w-full rounded-sm object-contain"
                     style={{ aspectRatio: `${p.image.width} / ${p.image.height}` }}
                   />
                 </figure>
