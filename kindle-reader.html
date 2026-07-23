@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Reader</title>
+<style>
+  :root{
+    --gap: 56px;
+    --margin: 64px;
+    --line-height: 1.65;
+    --font-size: 19px;
+    --font-stack: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman', serif;
+    --transition-speed: .45s;
+  }
+
+  [data-theme="light"]{
+    --bg: #ffffff;
+    --bg-panel: #f7f7f5;
+    --text: #24211d;
+    --text-dim: #78746c;
+    --accent: #b0522f;
+    --border: rgba(0,0,0,.08);
+    --control-bg: #efeee9;
+  }
+  [data-theme="sepia"]{
+    --bg: #f4ecd8;
+    --bg-panel: #ece1c8;
+    --text: #4c3d26;
+    --text-dim: #8a7757;
+    --accent: #9c4f2b;
+    --border: rgba(76,61,38,.15);
+    --control-bg: #e7dabf;
+  }
+  [data-theme="dark"]{
+    --bg: #17181a;
+    --bg-panel: #202226;
+    --text: #d8d6d0;
+    --text-dim: #83817b;
+    --accent: #e0865a;
+    --border: rgba(255,255,255,.08);
+    --control-bg: #26282c;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height:100%;
+    overflow:hidden;
+    transition: background var(--transition-speed) ease, color var(--transition-speed) ease;
+  }
+  #app{ height:100%; width:100%; position:relative; }
+
+  /* ---------- Upload screen ---------- */
+  #upload-screen{
+    height:100%; display:flex; align-items:center; justify-content:center;
+    flex-direction:column; gap:28px; padding:24px; text-align:center;
+  }
+  .brandmark{
+    font-family: var(--font-stack);
+    font-size: 15px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  #upload-screen h1{
+    font-family: var(--font-stack);
+    font-weight: 500;
+    font-size: clamp(28px, 5vw, 42px);
+    margin: 0;
+    max-width: 640px;
+    line-height: 1.25;
+  }
+  #upload-screen p.sub{
+    color: var(--text-dim);
+    font-size: 15px;
+    max-width: 460px;
+    margin: 0;
+    line-height: 1.6;
+  }
+  .dropzone{
+    width: min(480px, 86vw);
+    padding: 48px 28px;
+    border: 1.5px dashed var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: border-color .2s ease, background .2s ease;
+    background: var(--bg-panel);
+  }
+  .dropzone.dragover{ border-color: var(--accent); background: var(--control-bg); }
+  .dropzone svg{ opacity:.5; margin-bottom:14px; }
+  .dropzone .dz-title{ font-size:15px; font-weight:600; margin-bottom:6px; }
+  .dropzone .dz-sub{ font-size:13px; color:var(--text-dim); }
+  #file-input{ display:none; }
+
+  /* ---------- Loading screen ---------- */
+  #loading-screen{
+    height:100%; display:none; align-items:center; justify-content:center;
+    flex-direction:column; gap:18px;
+  }
+  .spinner{
+    width:34px; height:34px; border-radius:50%;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg);} }
+  #loading-status{ font-size:14px; color:var(--text-dim); font-family: var(--font-stack); }
+  #loading-bar-track{
+    width: min(320px, 70vw); height:2px; background:var(--border); border-radius:2px; overflow:hidden;
+  }
+  #loading-bar-fill{ height:100%; width:0%; background:var(--accent); transition:width .25s ease; }
+
+  /* ---------- Reader screen ---------- */
+  #reader-screen{ display:none; height:100%; position:relative; }
+
+  .bar{
+    position:absolute; left:0; right:0; z-index:20;
+    display:flex; align-items:center;
+    background: var(--bg);
+    transition: transform .3s ease, opacity .3s ease;
+    opacity:0; pointer-events:none;
+  }
+  .bar.visible{ opacity:1; pointer-events:auto; }
+
+  #topbar{
+    top:0; height:56px; padding:0 18px; justify-content:space-between;
+    border-bottom:1px solid var(--border);
+    transform: translateY(-100%);
+  }
+  #topbar.visible{ transform: translateY(0); }
+
+  #bottombar{
+    bottom:0; height:56px; padding:0 18px; justify-content:space-between; gap:16px;
+    border-top:1px solid var(--border);
+    transform: translateY(100%);
+  }
+  #bottombar.visible{ transform: translateY(0); }
+
+  .icon-btn{
+    background:none; border:none; cursor:pointer; color:var(--text);
+    display:flex; align-items:center; justify-content:center;
+    width:36px; height:36px; border-radius:50%; opacity:.75;
+  }
+  .icon-btn:hover{ opacity:1; background:var(--control-bg); }
+  .icon-btn svg{ width:18px; height:18px; }
+
+  #book-title-label{ font-size:13px; color:var(--text-dim); font-family: var(--font-stack); letter-spacing:.02em;
+    max-width:60vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  .progress-wrap{ flex:1; display:flex; align-items:center; gap:12px; }
+  #progress-track{ flex:1; height:2px; background:var(--border); border-radius:2px; cursor:pointer; position:relative; }
+  #progress-fill{ position:absolute; left:0; top:0; height:100%; background:var(--accent); border-radius:2px; }
+  #page-label{ font-size:12px; color:var(--text-dim); white-space:nowrap; min-width:118px; text-align:right; font-variant-numeric: tabular-nums; }
+
+  /* ---------- Book viewport / pagination ---------- */
+  #book-viewport{
+    position:absolute; inset:0;
+    overflow:hidden;
+    display:flex; align-items:stretch; justify-content:center;
+  }
+  #page-frame{
+    position:absolute; top:0; height:100%;
+    overflow:hidden;
+  }
+  #book-content{
+    height:100%;
+    column-gap: var(--gap);
+    will-change: transform;
+    transition: transform var(--transition-speed) cubic-bezier(.4,0,.2,1);
+    font-family: var(--font-stack);
+    font-size: var(--font-size);
+    line-height: var(--line-height);
+    color: var(--text);
+    padding-top: 76px;
+    padding-bottom: 76px;
+  }
+  #book-content p{
+    margin: 0 0 1em 0;
+    text-align: left;
+    orphans:2; widows:2;
+  }
+  #book-content figure.pdf-image{
+    margin: 0.4em 0 1.4em 0;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+    text-align: center;
+  }
+  #book-content figure.pdf-image img{
+    max-width: 100%;
+    height: auto;
+    border-radius: 2px;
+    display: inline-block;
+  }
+  #book-content .chapter-mark{
+    font-size: 0.6em; letter-spacing:.18em; text-transform:uppercase;
+    color: var(--text-dim); margin-bottom: 1.6em; margin-top:0;
+  }
+
+  .click-zone{ position:absolute; top:56px; bottom:56px; width:34%; z-index:5; cursor:pointer; }
+  .click-zone.left{ left:0; }
+  .click-zone.right{ right:0; }
+
+  /* ---------- Settings panel ---------- */
+  #settings-panel{
+    position:absolute; top:0; right:0; height:100%; width:300px; max-width:86vw;
+    background: var(--bg-panel);
+    border-left:1px solid var(--border);
+    transform: translateX(100%);
+    transition: transform .32s cubic-bezier(.4,0,.2,1);
+    z-index: 30; overflow-y:auto;
+    padding: 22px 20px 30px;
+  }
+  #settings-panel.open{ transform: translateX(0); }
+  #settings-panel h2{ font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-dim); margin:0 0 18px; }
+  .setting-group{ margin-bottom: 26px; }
+  .setting-group label.group-label{ display:block; font-size:12px; color:var(--text-dim); margin-bottom:10px; }
+
+  .theme-row{ display:flex; gap:10px; }
+  .theme-swatch{
+    flex:1; height:44px; border-radius:4px; cursor:pointer; border:1.5px solid var(--border);
+    display:flex; align-items:center; justify-content:center; font-size:11px; font-family: var(--font-stack);
+    transition: border-color .15s ease, transform .1s ease;
+  }
+  .theme-swatch.active{ border-color: var(--accent); }
+  .theme-swatch:active{ transform: scale(.97); }
+  .theme-swatch.sw-light{ background:#fff; color:#24211d; }
+  .theme-swatch.sw-sepia{ background:#f4ecd8; color:#4c3d26; }
+  .theme-swatch.sw-dark{ background:#17181a; color:#d8d6d0; }
+
+  .stepper{ display:flex; align-items:center; justify-content:space-between; background:var(--control-bg); border-radius:6px; padding:6px; }
+  .stepper button{
+    width:34px; height:34px; border-radius:4px; border:none; background:transparent; cursor:pointer;
+    color:var(--text); font-size:15px; font-family: var(--font-stack);
+  }
+  .stepper button:hover{ background: var(--bg); }
+  .stepper .val{ font-size:13px; color:var(--text-dim); }
+
+  .font-options{ display:flex; flex-direction:column; gap:8px; }
+  .font-option{
+    text-align:left; padding:10px 12px; border-radius:6px; border:1.5px solid var(--border);
+    background:none; cursor:pointer; color:var(--text); font-size:15px;
+  }
+  .font-option.active{ border-color: var(--accent); }
+
+  input[type=range]{
+    width:100%; -webkit-appearance:none; height:2px; background:var(--border); border-radius:2px; outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:var(--accent); cursor:pointer;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:14px; height:14px; border-radius:50%; background:var(--accent); border:none; cursor:pointer;
+  }
+
+  .close-panel{ position:absolute; top:16px; right:16px; }
+
+  #panel-scrim{
+    position:absolute; inset:0; z-index:25; display:none;
+  }
+  #panel-scrim.show{ display:block; }
+
+  ::selection{ background: var(--accent); color:#fff; }
+
+  @media (max-width: 640px){
+    #settings-panel{ width: 260px; }
+    #book-title-label{ max-width:38vw; }
+    #page-label{ min-width:0; }
+  }
+</style>
+</head>
+<body data-theme="sepia">
+<div id="app">
+
+  <!-- Upload screen -->
+  <div id="upload-screen">
+    <div class="brandmark">Reader</div>
+    <h1>Turn any PDF into a book you'd actually want to read.</h1>
+    <p class="sub">Drop in a PDF and it reflows into clean, paginated pages — no zooming, no panning, no cramped columns. Scanned pages are read automatically.</p>
+    <div class="dropzone" id="dropzone">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v12m0-12l-4 4m4-4l4 4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+      <div class="dz-title">Choose a PDF, or drag it here</div>
+      <div class="dz-sub">Text and scanned documents both work</div>
+    </div>
+    <input type="file" id="file-input" accept="application/pdf" />
+  </div>
+
+  <!-- Loading screen -->
+  <div id="loading-screen">
+    <div class="spinner"></div>
+    <div id="loading-status">Reading your file…</div>
+    <div id="loading-bar-track"><div id="loading-bar-fill"></div></div>
+  </div>
+
+  <!-- Reader screen -->
+  <div id="reader-screen">
+    <div class="click-zone left" id="zone-prev"></div>
+    <div class="click-zone right" id="zone-next"></div>
+
+    <div id="book-viewport">
+      <div id="page-frame">
+        <div id="book-content"></div>
+      </div>
+    </div>
+
+    <div class="bar" id="topbar">
+      <button class="icon-btn" id="btn-back" title="Close book">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <div id="book-title-label"></div>
+      <button class="icon-btn" id="btn-settings" title="Display settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><text x="4" y="17" font-size="15" fill="currentColor" stroke="none" font-family="Georgia,serif">Aa</text></svg>
+      </button>
+    </div>
+
+    <div class="bar" id="bottombar">
+      <div class="progress-wrap">
+        <div id="progress-track"><div id="progress-fill"></div></div>
+      </div>
+      <div id="page-label">Page 1 of 1</div>
+    </div>
+  </div>
+
+  <div id="panel-scrim"></div>
+  <div id="settings-panel">
+    <button class="icon-btn close-panel" id="btn-close-panel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <h2>Display</h2>
+
+    <div class="setting-group">
+      <label class="group-label">Theme</label>
+      <div class="theme-row">
+        <div class="theme-swatch sw-light" data-theme-choice="light">Light</div>
+        <div class="theme-swatch sw-sepia" data-theme-choice="sepia">Sepia</div>
+        <div class="theme-swatch sw-dark" data-theme-choice="dark">Dark</div>
+      </div>
+    </div>
+
+    <div class="setting-group">
+      <label class="group-label">Text size</label>
+      <div class="stepper">
+        <button id="font-dec">A−</button>
+        <span class="val" id="font-size-val">19px</span>
+        <button id="font-inc">A+</button>
+      </div>
+    </div>
+
+    <div class="setting-group">
+      <label class="group-label">Typeface</label>
+      <div class="font-options" id="font-options"></div>
+    </div>
+
+    <div class="setting-group">
+      <label class="group-label">Line spacing</label>
+      <input type="range" id="line-height-slider" min="130" max="220" step="5" value="165">
+    </div>
+
+    <div class="setting-group">
+      <label class="group-label">Margins</label>
+      <input type="range" id="margin-slider" min="24" max="120" step="4" value="64">
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var els = {
+    uploadScreen: document.getElementById('upload-screen'),
+    loadingScreen: document.getElementById('loading-screen'),
+    readerScreen: document.getElementById('reader-screen'),
+    dropzone: document.getElementById('dropzone'),
+    fileInput: document.getElementById('file-input'),
+    loadingStatus: document.getElementById('loading-status'),
+    loadingBarFill: document.getElementById('loading-bar-fill'),
+    bookViewport: document.getElementById('book-viewport'),
+    pageFrame: document.getElementById('page-frame'),
+    bookContent: document.getElementById('book-content'),
+    topbar: document.getElementById('topbar'),
+    bottombar: document.getElementById('bottombar'),
+    bookTitleLabel: document.getElementById('book-title-label'),
+    pageLabel: document.getElementById('page-label'),
+    progressTrack: document.getElementById('progress-track'),
+    progressFill: document.getElementById('progress-fill'),
+    zonePrev: document.getElementById('zone-prev'),
+    zoneNext: document.getElementById('zone-next'),
+    btnBack: document.getElementById('btn-back'),
+    btnSettings: document.getElementById('btn-settings'),
+    btnClosePanel: document.getElementById('btn-close-panel'),
+    settingsPanel: document.getElementById('settings-panel'),
+    panelScrim: document.getElementById('panel-scrim'),
+    fontDec: document.getElementById('font-dec'),
+    fontInc: document.getElementById('font-inc'),
+    fontSizeVal: document.getElementById('font-size-val'),
+    fontOptions: document.getElementById('font-options'),
+    lineHeightSlider: document.getElementById('line-height-slider'),
+    marginSlider: document.getElementById('margin-slider'),
+    themeSwatches: document.querySelectorAll('.theme-swatch')
+  };
+
+  var FONT_STACKS = [
+    { id:'serif',    label:'Serif',       stack:"Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman', serif" },
+    { id:'classic',  label:'Classic',     stack:"Cambria, 'Times New Roman', Times, serif" },
+    { id:'sans',     label:'Sans-serif',  stack:"-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" },
+    { id:'legible',  label:'Large Print', stack:"Verdana, 'Trebuchet MS', sans-serif" }
+  ];
+
+  var state = {
+    fontSizePx: 19,
+    fontFamilyId: 'serif',
+    lineHeight: 1.65,
+    margin: 64,
+    theme: 'sepia',
+    currentPage: 1,
+    totalPages: 1,
+    pageAdvance: 0, // colWidth + gap, in px
+    fileName: '',
+    hideTimer: null,
+    barsVisible: false
+  };
+
+  // ---------------- Upload handling ----------------
+  els.dropzone.addEventListener('click', function(){ els.fileInput.click(); });
+  els.fileInput.addEventListener('change', function(e){
+    if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
+  });
+  ['dragenter','dragover'].forEach(function(evt){
+    els.dropzone.addEventListener(evt, function(e){ e.preventDefault(); els.dropzone.classList.add('dragover'); });
+  });
+  ['dragleave','drop'].forEach(function(evt){
+    els.dropzone.addEventListener(evt, function(e){ e.preventDefault(); els.dropzone.classList.remove('dragover'); });
+  });
+  els.dropzone.addEventListener('drop', function(e){
+    var f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  });
+
+  function showScreen(name){
+    els.uploadScreen.style.display = name === 'upload' ? 'flex' : 'none';
+    els.loadingScreen.style.display = name === 'loading' ? 'flex' : 'none';
+    els.readerScreen.style.display = name === 'reader' ? 'block' : 'none';
+  }
+
+  function setLoadingStatus(text, pct){
+    els.loadingStatus.textContent = text;
+    if (typeof pct === 'number') els.loadingBarFill.style.width = Math.max(0, Math.min(100, pct)) + '%';
+  }
+
+  // ---------------- PDF processing ----------------
+  if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+
+  function escapeHtml(str){
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function handleFile(file){
+    if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) {
+      alert('Please choose a PDF file.');
+      return;
+    }
+    state.fileName = file.name.replace(/\.pdf$/i, '');
+    showScreen('loading');
+    setLoadingStatus('Opening ' + state.fileName + '…', 2);
+
+    var reader = new FileReader();
+    reader.onload = function(){
+      var typedArray = new Uint8Array(reader.result);
+      if (!window.pdfjsLib){
+        setLoadingStatus('Could not load the PDF engine. Check your connection and try again.', 0);
+        return;
+      }
+      pdfjsLib.getDocument({ data: typedArray }).promise.then(function(pdfDoc){
+        extractAllPages(pdfDoc);
+      }).catch(function(err){
+        console.error(err);
+        setLoadingStatus('This file could not be read as a PDF.', 0);
+      });
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  var runningLineCounts = {};
+
+  function extractAllPages(pdfDoc){
+    var numPages = pdfDoc.numPages;
+    var paragraphsHtml = [];
+    var pageIndex = 0;
+
+    function processNext(){
+      pageIndex++;
+      if (pageIndex > numPages){
+        finishExtraction(paragraphsHtml);
+        return;
+      }
+      var pct = 5 + Math.round((pageIndex-1) / numPages * 90);
+      setLoadingStatus('Reading page ' + pageIndex + ' of ' + numPages + '…', pct);
+
+      pdfDoc.getPage(pageIndex).then(function(page){
+        return page.getTextContent().then(function(textContent){
+          paragraphsHtml.push.apply(paragraphsHtml, linesToParagraphs(textContent.items));
+          processNext();
+        });
+      }).catch(function(err){
+        console.warn('Failed to read page', pageIndex, err);
+        processNext();
+      });
+    }
+    processNext();
+  }
+
+  function linesToParagraphs(items){
+    if (!items.length) return [];
+    // group text items into lines by y-position
+    var lines = [];
+    var currentLine = null;
+    var lastY = null;
+    items.forEach(function(it){
+      var y = Math.round(it.transform[5]);
+      if (currentLine === null || lastY === null || Math.abs(y - lastY) > 2.5){
+        currentLine = { y: y, parts: [] };
+        lines.push(currentLine);
+        lastY = y;
+      }
+      currentLine.parts.push(it.str);
+    });
+    var lineTexts = lines.map(function(l){ return l.parts.join(' ').replace(/\s+/g,' ').trim(); }).filter(Boolean);
+
+    // Track short, all-caps-ish or title-like lines that could be running
+    // headers/footers repeated on many pages (e.g. the book's title reprinted
+    // on every page). Counted globally, stripped once we know the frequency.
+    lineTexts.forEach(function(line){
+      if (line.length > 2 && line.length < 60){
+        runningLineCounts[line] = (runningLineCounts[line] || 0) + 1;
+      }
+    });
+
+    // Lines with long runs of dots/periods are TOC entries (or similar
+    // leader-dot lists). They must never be merged into surrounding prose —
+    // each stays its own paragraph, dots collapsed to a plain separator.
+    var DOT_LEADER = /\.{4,}|(?:\. ?){5,}/;
+    var paragraphs = [];
+    var buffer = '';
+
+    function flushBuffer(){
+      if (buffer) { paragraphs.push(buffer); buffer = ''; }
+    }
+
+    lineTexts.forEach(function(line){
+      if (DOT_LEADER.test(line)){
+        flushBuffer();
+        var cleaned = line.replace(/\.{2,}/g, ' — ').replace(/\s+/g,' ').trim();
+        paragraphs.push(cleaned);
+        return;
+      }
+      if (!buffer){ buffer = line; return; }
+      var endsSentence = /[.!?…"')\]]$/.test(buffer);
+      var startsCap = /^[A-Z0-9"'“]/.test(line);
+      if (endsSentence && startsCap && buffer.length < 100){
+        paragraphs.push(buffer);
+        buffer = line;
+      } else {
+        buffer += (endsSentence ? ' ' : ' ') + line;
+      }
+    });
+    if (buffer) paragraphs.push(buffer);
+    return paragraphs.map(function(p){
+      var isShortCandidate = p.length > 2 && p.length < 60 && !DOT_LEADER.test(p);
+      var attr = isShortCandidate ? ' data-repeatline="' + escapeHtml(p) + '"' : '';
+      return '<p' + attr + '>' + escapeHtml(p) + '</p>';
+    });
+  }
+
+  function stripRunningHeaders(){
+    var candidates = els.bookContent.querySelectorAll('p[data-repeatline]');
+    var repeatThreshold = Math.max(3, Math.floor(candidates.length * 0.002) + 3);
+    candidates.forEach(function(p){
+      var key = p.getAttribute('data-repeatline');
+      var count = runningLineCounts[key] || 0;
+      if (count >= repeatThreshold) p.remove();
+    });
+  }
+
+  function finishExtraction(paragraphsHtml){
+    if (!paragraphsHtml.length){
+      setLoadingStatus('No readable text was found in this PDF.', 0);
+      return;
+    }
+    setLoadingStatus('Laying out your book…', 96);
+    els.bookContent.innerHTML = paragraphsHtml.join('\n');
+    stripRunningHeaders();
+    els.bookTitleLabel.textContent = state.fileName;
+    setTimeout(function(){
+      showScreen('reader');
+      applyAllStyles();
+      layoutPages(true);
+      showBars(true);
+      scheduleAutoHide();
+    }, 80);
+  }
+
+  // ---------------- Pagination (CSS columns) ----------------
+  function layoutPages(resetToStart){
+    var viewportWidth = els.bookViewport.clientWidth;
+    var viewportHeight = els.bookViewport.clientHeight;
+    var colWidth = Math.min(800, Math.max(320, viewportWidth - state.margin * 2));
+    var gap = state.margin * 2;
+
+    els.pageFrame.style.width = colWidth + 'px';
+    els.pageFrame.style.left = ((viewportWidth - colWidth) / 2) + 'px';
+
+    els.bookContent.style.width = colWidth + 'px';
+    els.bookContent.style.columnWidth = colWidth + 'px';
+    els.bookContent.style.columnGap = gap + 'px';
+    els.bookContent.style.height = viewportHeight + 'px';
+
+    // force reflow to measure
+    els.bookContent.style.transition = 'none';
+    els.bookContent.style.transform = 'translateX(0px)';
+    void els.bookContent.offsetWidth;
+
+    var advance = colWidth + gap;
+    state.pageAdvance = advance;
+    var scrollW = els.bookContent.scrollWidth;
+    state.totalPages = Math.max(1, Math.round(scrollW / advance));
+
+    if (resetToStart) state.currentPage = 1;
+    if (state.currentPage > state.totalPages) state.currentPage = state.totalPages;
+
+    requestAnimationFrame(function(){
+      els.bookContent.style.transition = '';
+      goToPage(state.currentPage, true);
+    });
+  }
+
+  function goToPage(n, instant){
+    n = Math.max(1, Math.min(state.totalPages, n));
+    state.currentPage = n;
+    var x = -(n - 1) * state.pageAdvance;
+    if (instant){
+      var prevTransition = els.bookContent.style.transition;
+      els.bookContent.style.transition = 'none';
+      els.bookContent.style.transform = 'translateX(' + x + 'px)';
+      void els.bookContent.offsetWidth;
+      els.bookContent.style.transition = prevTransition;
+    } else {
+      els.bookContent.style.transform = 'translateX(' + x + 'px)';
+    }
+    updatePageIndicator();
+  }
+
+  function updatePageIndicator(){
+    els.pageLabel.textContent = 'Page ' + state.currentPage + ' of ' + state.totalPages;
+    var pct = state.totalPages > 1 ? (state.currentPage - 1) / (state.totalPages - 1) * 100 : 100;
+    els.progressFill.style.width = pct + '%';
+  }
+
+  function nextPage(){ if (state.currentPage < state.totalPages) goToPage(state.currentPage + 1); }
+  function prevPage(){ if (state.currentPage > 1) goToPage(state.currentPage - 1); }
+
+  els.zoneNext.addEventListener('click', function(){ hideBarsIfOpenElseNothing(); nextPage(); });
+  els.zonePrev.addEventListener('click', function(){ hideBarsIfOpenElseNothing(); prevPage(); });
+
+  function hideBarsIfOpenElseNothing(){ /* reserved for future tap-to-toggle nuance */ }
+
+  document.addEventListener('keydown', function(e){
+    if (els.readerScreen.style.display !== 'block') return;
+    if (e.key === 'ArrowRight') nextPage();
+    else if (e.key === 'ArrowLeft') prevPage();
+    else if (e.key === 'Escape') closePanel();
+  });
+
+  els.progressTrack.addEventListener('click', function(e){
+    var rect = els.progressTrack.getBoundingClientRect();
+    var pct = (e.clientX - rect.left) / rect.width;
+    var target = Math.round(pct * (state.totalPages - 1)) + 1;
+    goToPage(target);
+  });
+
+  window.addEventListener('resize', debounce(function(){
+    if (els.readerScreen.style.display === 'block') {
+      var pct = state.totalPages > 1 ? (state.currentPage - 1) / (state.totalPages - 1) : 0;
+      layoutPages(false);
+      state.currentPage = Math.max(1, Math.round(pct * (state.totalPages - 1)) + 1);
+      goToPage(state.currentPage, true);
+    }
+  }, 200));
+
+  function debounce(fn, ms){
+    var t;
+    return function(){
+      clearTimeout(t);
+      var args = arguments;
+      t = setTimeout(function(){ fn.apply(null, args); }, ms);
+    };
+  }
+
+  // ---------------- Bars show/hide ----------------
+  function showBars(){
+    els.topbar.classList.add('visible');
+    els.bottombar.classList.add('visible');
+    state.barsVisible = true;
+  }
+  function hideBars(){
+    if (els.settingsPanel.classList.contains('open')) return;
+    els.topbar.classList.remove('visible');
+    els.bottombar.classList.remove('visible');
+    state.barsVisible = false;
+  }
+  function scheduleAutoHide(){
+    clearTimeout(state.hideTimer);
+    state.hideTimer = setTimeout(hideBars, 2800);
+  }
+  els.bookViewport.addEventListener('mousemove', function(e){
+    var rect = els.bookViewport.getBoundingClientRect();
+    if (e.clientY - rect.top < 70 || rect.bottom - e.clientY < 70){
+      showBars();
+    }
+    scheduleAutoHide();
+  });
+  els.bookViewport.addEventListener('click', function(e){
+    var rect = els.bookViewport.getBoundingClientRect();
+    var relX = e.clientX - rect.left;
+    if (relX > rect.width * 0.33 && relX < rect.width * 0.67){
+      if (state.barsVisible) hideBars(); else { showBars(); scheduleAutoHide(); }
+    }
+  });
+  els.topbar.addEventListener('mouseenter', function(){ clearTimeout(state.hideTimer); });
+  els.bottombar.addEventListener('mouseenter', function(){ clearTimeout(state.hideTimer); });
+  els.topbar.addEventListener('mouseleave', scheduleAutoHide);
+  els.bottombar.addEventListener('mouseleave', scheduleAutoHide);
+
+  // ---------------- Settings panel ----------------
+  function openPanel(){
+    els.settingsPanel.classList.add('open');
+    els.panelScrim.classList.add('show');
+    showBars();
+    clearTimeout(state.hideTimer);
+  }
+  function closePanel(){
+    els.settingsPanel.classList.remove('open');
+    els.panelScrim.classList.remove('show');
+    scheduleAutoHide();
+  }
+  els.btnSettings.addEventListener('click', openPanel);
+  els.btnClosePanel.addEventListener('click', closePanel);
+  els.panelScrim.addEventListener('click', closePanel);
+
+  els.btnBack.addEventListener('click', function(){
+    showScreen('upload');
+    els.fileInput.value = '';
+    els.bookContent.innerHTML = '';
+  });
+
+  // Theme
+  els.themeSwatches.forEach(function(sw){
+    sw.addEventListener('click', function(){
+      state.theme = sw.getAttribute('data-theme-choice');
+      document.body.setAttribute('data-theme', state.theme);
+      markActiveTheme();
+    });
+  });
+  function markActiveTheme(){
+    els.themeSwatches.forEach(function(sw){
+      sw.classList.toggle('active', sw.getAttribute('data-theme-choice') === state.theme);
+    });
+  }
+
+  // Font size
+  var FONT_MIN = 14, FONT_MAX = 30;
+  els.fontDec.addEventListener('click', function(){
+    state.fontSizePx = Math.max(FONT_MIN, state.fontSizePx - 1);
+    applyAllStyles(); layoutPages(false);
+  });
+  els.fontInc.addEventListener('click', function(){
+    state.fontSizePx = Math.min(FONT_MAX, state.fontSizePx + 1);
+    applyAllStyles(); layoutPages(false);
+  });
+
+  // Font family
+  FONT_STACKS.forEach(function(f){
+    var btn = document.createElement('button');
+    btn.className = 'font-option';
+    btn.textContent = f.label;
+    btn.style.fontFamily = f.stack;
+    btn.setAttribute('data-font-id', f.id);
+    btn.addEventListener('click', function(){
+      state.fontFamilyId = f.id;
+      applyAllStyles(); layoutPages(false);
+      markActiveFont();
+    });
+    els.fontOptions.appendChild(btn);
+  });
+  function markActiveFont(){
+    Array.prototype.forEach.call(els.fontOptions.children, function(btn){
+      btn.classList.toggle('active', btn.getAttribute('data-font-id') === state.fontFamilyId);
+    });
+  }
+
+  // Line height & margin
+  els.lineHeightSlider.addEventListener('input', function(){
+    state.lineHeight = parseInt(els.lineHeightSlider.value, 10) / 100;
+    applyAllStyles(); layoutPages(false);
+  });
+  els.marginSlider.addEventListener('input', function(){
+    state.margin = parseInt(els.marginSlider.value, 10);
+    layoutPages(false);
+  });
+
+  function applyAllStyles(){
+    var fontDef = FONT_STACKS.filter(function(f){ return f.id === state.fontFamilyId; })[0] || FONT_STACKS[0];
+    els.bookContent.style.setProperty('--font-stack', fontDef.stack);
+    document.documentElement.style.setProperty('--font-stack', fontDef.stack);
+    document.documentElement.style.setProperty('--font-size', state.fontSizePx + 'px');
+    document.documentElement.style.setProperty('--line-height', state.lineHeight);
+    document.documentElement.style.setProperty('--margin', state.margin + 'px');
+    els.fontSizeVal.textContent = state.fontSizePx + 'px';
+    markActiveTheme();
+    markActiveFont();
+  }
+
+  document.body.setAttribute('data-theme', state.theme);
+  markActiveTheme();
+  markActiveFont();
+  showScreen('upload');
+})();
+</script>
+</body>
+</html>
